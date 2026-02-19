@@ -96,7 +96,7 @@ function validateConnection(connection: DbConnection): string | null {
   }
 
   const strongPassword =
-    connection.password.length >= 3 &&
+    connection.password.length >= 8 &&
     /[A-Z]/.test(connection.password) &&
     /[a-z]/.test(connection.password) &&
     /[0-9]/.test(connection.password);
