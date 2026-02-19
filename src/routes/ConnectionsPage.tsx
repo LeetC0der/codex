@@ -50,6 +50,8 @@ type FormDraft = {
   host: string;
   port: string;
   database: string;
+  username: string;
+  password: string;
   notes: string;
 };
 
@@ -59,6 +61,8 @@ const emptyDraft: FormDraft = {
   host: '',
   port: '5432',
   database: '',
+  username: '',
+  password: '',
   notes: '',
 };
 
@@ -86,6 +90,8 @@ export function ConnectionsPage() {
       host: connection.host,
       port: String(connection.port),
       database: connection.database,
+      username: connection.username,
+      password: connection.password,
       notes: connection.notes,
     });
     setEditOpen(true);
@@ -109,6 +115,11 @@ export function ConnectionsPage() {
           <Text size="xs" c="dimmed">
             {connection.notes}
           </Text>
+          {connection.lastError ? (
+            <Text size="xs" c="red">
+              {connection.lastError}
+            </Text>
+          ) : null}
         </Stack>
       </Table.Td>
       <Table.Td>
@@ -196,7 +207,14 @@ export function ConnectionsPage() {
               </Dialog.Close>
               <Button
                 onClick={() => {
-                  if (!selected || !formDraft.name.trim() || !formDraft.host.trim()) {
+                  if (
+                    !selected ||
+                    !formDraft.name.trim() ||
+                    !formDraft.host.trim() ||
+                    !formDraft.database.trim() ||
+                    !formDraft.username.trim() ||
+                    !formDraft.password.trim()
+                  ) {
                     return;
                   }
                   dispatch(
@@ -207,6 +225,8 @@ export function ConnectionsPage() {
                       host: formDraft.host.trim(),
                       port: Number(formDraft.port) || selected.port,
                       database: formDraft.database.trim(),
+                      username: formDraft.username.trim(),
+                      password: formDraft.password,
                       notes: formDraft.notes.trim(),
                     })
                   );
@@ -235,7 +255,13 @@ export function ConnectionsPage() {
               </Dialog.Close>
               <Button
                 onClick={() => {
-                  if (!formDraft.name.trim() || !formDraft.host.trim()) {
+                  if (
+                    !formDraft.name.trim() ||
+                    !formDraft.host.trim() ||
+                    !formDraft.database.trim() ||
+                    !formDraft.username.trim() ||
+                    !formDraft.password.trim()
+                  ) {
                     return;
                   }
                   dispatch(
@@ -245,6 +271,8 @@ export function ConnectionsPage() {
                       host: formDraft.host.trim(),
                       port: Number(formDraft.port) || 5432,
                       database: formDraft.database.trim(),
+                      username: formDraft.username.trim(),
+                      password: formDraft.password,
                       notes: formDraft.notes.trim(),
                     })
                   );
@@ -333,6 +361,17 @@ function ConnectionForm({ draft, setDraft }: ConnectionFormProps) {
         label="Database"
         value={draft.database}
         onChange={(event) => setDraft((prev) => ({ ...prev, database: event.currentTarget.value }))}
+      />
+      <TextInput
+        label="Username"
+        value={draft.username}
+        onChange={(event) => setDraft((prev) => ({ ...prev, username: event.currentTarget.value }))}
+      />
+      <TextInput
+        label="Password"
+        type="password"
+        value={draft.password}
+        onChange={(event) => setDraft((prev) => ({ ...prev, password: event.currentTarget.value }))}
       />
       <TextInput
         label="Notes"

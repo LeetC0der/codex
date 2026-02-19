@@ -16,6 +16,9 @@ export type DbConnection = {
   host: string;
   port: number;
   database: string;
+  username: string;
+  password: string;
   status: ConnectionStatus;
   notes: string;
+  lastError: string | null;
 };
