@@ -1,64 +1,14 @@
-import { Badge, Button, Card, Container, Group, Stack, Table, Text, Title } from '@mantine/core';
+import { Badge, Button, Card, Container, Group, Stack, Table, Text, TextInput, Title } from '@mantine/core';
+import * as Dialog from '@radix-ui/react-dialog';
+import { type CSSProperties, useMemo, useState } from 'react';
 
-type ConnectionStatus = 'Connected' | 'Disconnected' | 'Testing';
-
-type DbEngine =
-  | 'PostgreSQL'
-  | 'MySQL'
-  | 'MariaDB'
-  | 'SQL Server'
-  | 'Oracle'
-  | 'SQLite'
-  | 'CockroachDB';
-
-type DbConnection = {
-  name: string;
-  engine: DbEngine;
-  host: string;
-  port: number;
-  database: string;
-  status: ConnectionStatus;
-  notes: string;
-};
-
-const dbConnections: DbConnection[] = [
-  {
-    name: 'Primary Analytics',
-    engine: 'PostgreSQL',
-    host: 'analytics-prod.internal',
-    port: 5432,
-    database: 'analytics',
-    status: 'Connected',
-    notes: 'Used for BI dashboards',
-  },
-  {
-    name: 'Orders Core',
-    engine: 'MySQL',
-    host: 'orders.internal',
-    port: 3306,
-    database: 'orders',
-    status: 'Testing',
-    notes: 'OLTP write traffic',
-  },
-  {
-    name: 'Legacy ERP',
-    engine: 'SQL Server',
-    host: 'erp.corp.local',
-    port: 1433,
-    database: 'erp_main',
-    status: 'Disconnected',
-    notes: 'Needs credential rotation',
-  },
-  {
-    name: 'Finance Warehouse',
-    engine: 'Oracle',
-    host: 'finance-db.internal',
-    port: 1521,
-    database: 'fin_dw',
-    status: 'Connected',
-    notes: 'Nightly reconciliation jobs',
-  },
-];
+import {
+  editConnection,
+  renameConnection,
+  testConnection,
+} from '../features/connections/connectionsSlice';
+import type { ConnectionStatus, DbConnection, DbEngine } from '../features/connections/types';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
 
 const statusColorMap: Record<ConnectionStatus, string> = {
   Connected: 'green',
@@ -76,9 +26,52 @@ const engineColorMap: Record<DbEngine, string> = {
   CockroachDB: 'lime',
 };
 
+type EditDraft = {
+  host: string;
+  port: string;
+  database: string;
+  notes: string;
+};
+
 export function ConnectionsPage() {
-  const rows = dbConnections.map((connection) => (
-    <Table.Tr key={connection.name}>
+  const dispatch = useAppDispatch();
+  const dbConnections = useAppSelector((state) => state.connections.items);
+
+  const [editOpen, setEditOpen] = useState(false);
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [selected, setSelected] = useState<DbConnection | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+  const [editDraft, setEditDraft] = useState<EditDraft>({
+    host: '',
+    port: '',
+    database: '',
+    notes: '',
+  });
+
+  const sortedConnections = useMemo(
+    () => [...dbConnections].sort((a, b) => a.name.localeCompare(b.name)),
+    [dbConnections]
+  );
+
+  const openEditDialog = (connection: DbConnection) => {
+    setSelected(connection);
+    setEditDraft({
+      host: connection.host,
+      port: String(connection.port),
+      database: connection.database,
+      notes: connection.notes,
+    });
+    setEditOpen(true);
+  };
+
+  const openRenameDialog = (connection: DbConnection) => {
+    setSelected(connection);
+    setRenameValue(connection.name);
+    setRenameOpen(true);
+  };
+
+  const rows = sortedConnections.map((connection) => (
+    <Table.Tr key={connection.id}>
       <Table.Td>
         <Stack gap={0}>
           <Text fw={600}>{connection.name}</Text>
@@ -103,13 +96,20 @@ export function ConnectionsPage() {
       </Table.Td>
       <Table.Td>
         <Group gap="xs" justify="end">
-          <Button size="xs" variant="light">
+          <Button
+            size="xs"
+            variant="light"
+            loading={connection.status === 'Testing'}
+            onClick={() => {
+              dispatch(testConnection(connection.id));
+            }}
+          >
             Test connection
           </Button>
-          <Button size="xs" variant="default">
+          <Button size="xs" variant="default" onClick={() => openEditDialog(connection)}>
             Edit
           </Button>
-          <Button size="xs" variant="subtle">
+          <Button size="xs" variant="subtle" onClick={() => openRenameDialog(connection)}>
             Rename
           </Button>
         </Group>
@@ -147,6 +147,119 @@ export function ConnectionsPage() {
           </Table.ScrollContainer>
         </Card>
       </Stack>
+
+      <Dialog.Root open={editOpen} onOpenChange={setEditOpen}>
+        <Dialog.Portal>
+          <Dialog.Overlay style={overlayStyle} />
+          <Dialog.Content style={contentStyle}>
+            <Dialog.Title style={{ margin: 0 }}>Edit DB connection</Dialog.Title>
+            <Dialog.Description style={{ color: '#666', marginTop: 8 }}>
+              Update endpoint details for {selected?.name}.
+            </Dialog.Description>
+            <Stack mt="md">
+              <TextInput
+                label="Host"
+                value={editDraft.host}
+                onChange={(event) => setEditDraft((prev) => ({ ...prev, host: event.currentTarget.value }))}
+              />
+              <TextInput
+                label="Port"
+                value={editDraft.port}
+                onChange={(event) => setEditDraft((prev) => ({ ...prev, port: event.currentTarget.value }))}
+              />
+              <TextInput
+                label="Database"
+                value={editDraft.database}
+                onChange={(event) =>
+                  setEditDraft((prev) => ({ ...prev, database: event.currentTarget.value }))
+                }
+              />
+              <TextInput
+                label="Notes"
+                value={editDraft.notes}
+                onChange={(event) => setEditDraft((prev) => ({ ...prev, notes: event.currentTarget.value }))}
+              />
+              <Group justify="end">
+                <Dialog.Close asChild>
+                  <Button variant="default">Cancel</Button>
+                </Dialog.Close>
+                <Button
+                  onClick={() => {
+                    if (!selected) {
+                      return;
+                    }
+                    dispatch(
+                      editConnection({
+                        id: selected.id,
+                        host: editDraft.host,
+                        port: Number(editDraft.port) || selected.port,
+                        database: editDraft.database,
+                        notes: editDraft.notes,
+                      })
+                    );
+                    setEditOpen(false);
+                  }}
+                >
+                  Save
+                </Button>
+              </Group>
+            </Stack>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+
+      <Dialog.Root open={renameOpen} onOpenChange={setRenameOpen}>
+        <Dialog.Portal>
+          <Dialog.Overlay style={overlayStyle} />
+          <Dialog.Content style={contentStyle}>
+            <Dialog.Title style={{ margin: 0 }}>Rename DB connection</Dialog.Title>
+            <Dialog.Description style={{ color: '#666', marginTop: 8 }}>
+              Update the display name for this connection.
+            </Dialog.Description>
+            <Stack mt="md">
+              <TextInput
+                label="Connection name"
+                value={renameValue}
+                onChange={(event) => setRenameValue(event.currentTarget.value)}
+              />
+              <Group justify="end">
+                <Dialog.Close asChild>
+                  <Button variant="default">Cancel</Button>
+                </Dialog.Close>
+                <Button
+                  onClick={() => {
+                    if (!selected || !renameValue.trim()) {
+                      return;
+                    }
+                    dispatch(renameConnection({ id: selected.id, name: renameValue.trim() }));
+                    setRenameOpen(false);
+                  }}
+                >
+                  Rename
+                </Button>
+              </Group>
+            </Stack>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
     </Container>
   );
 }
+
+const overlayStyle: CSSProperties = {
+  backgroundColor: 'rgba(0, 0, 0, 0.35)',
+  position: 'fixed',
+  inset: 0,
+};
+
+const contentStyle: CSSProperties = {
+  backgroundColor: 'white',
+  borderRadius: 12,
+  boxShadow: '0 18px 38px rgba(0, 0, 0, 0.2)',
+  position: 'fixed',
+  top: '50%',
+  left: '50%',
+  transform: 'translate(-50%, -50%)',
+  width: 'min(92vw, 520px)',
+  padding: 20,
+};
