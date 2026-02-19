@@ -10,39 +10,51 @@ import {
   Text,
   TextInput,
   Title,
-} from '@mantine/core';
-import * as Dialog from '@radix-ui/react-dialog';
-import { type CSSProperties, type Dispatch, type SetStateAction, useMemo, useState } from 'react';
+} from "@mantine/core";
+import * as Dialog from "@radix-ui/react-dialog";
+import {
+  type CSSProperties,
+  type Dispatch,
+  type SetStateAction,
+  useMemo,
+  useState,
+} from "react";
 
 import {
   addConnection,
   editConnection,
   removeConnection,
   testConnection,
-} from '../features/connections/connectionsSlice';
-import type { ConnectionStatus, DbConnection, DbEngine } from '../features/connections/types';
-import { useAppDispatch, useAppSelector } from '../store/hooks';
+} from "../features/connections/connectionsSlice";
+import type {
+  ConnectionStatus,
+  DbConnection,
+  DbEngine,
+} from "../features/connections/types";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
 
 const statusColorMap: Record<ConnectionStatus, string> = {
-  Connected: 'green',
-  Testing: 'yellow',
-  Disconnected: 'red',
+  Connected: "green",
+  Testing: "yellow",
+  Disconnected: "red",
 };
 
 const engineColorMap: Record<DbEngine, string> = {
-  PostgreSQL: 'indigo',
-  MySQL: 'blue',
-  MariaDB: 'cyan',
-  'SQL Server': 'grape',
-  Oracle: 'orange',
-  SQLite: 'teal',
-  CockroachDB: 'lime',
+  PostgreSQL: "indigo",
+  MySQL: "blue",
+  MariaDB: "cyan",
+  "SQL Server": "grape",
+  Oracle: "orange",
+  SQLite: "teal",
+  CockroachDB: "lime",
 };
 
-const engineOptions = (Object.keys(engineColorMap) as DbEngine[]).map((engine) => ({
-  value: engine,
-  label: engine,
-}));
+const engineOptions = (Object.keys(engineColorMap) as DbEngine[]).map(
+  (engine) => ({
+    value: engine,
+    label: engine,
+  }),
+);
 
 type FormDraft = {
   name: string;
@@ -50,16 +62,20 @@ type FormDraft = {
   host: string;
   port: string;
   database: string;
+  username: string;
+  password: string;
   notes: string;
 };
 
 const emptyDraft: FormDraft = {
-  name: '',
-  engine: 'PostgreSQL',
-  host: '',
-  port: '5432',
-  database: '',
-  notes: '',
+  name: "",
+  engine: "PostgreSQL",
+  host: "",
+  port: "5432",
+  database: "",
+  username: "",
+  password: "",
+  notes: "",
 };
 
 export function ConnectionsPage() {
@@ -75,7 +91,7 @@ export function ConnectionsPage() {
 
   const sortedConnections = useMemo(
     () => [...dbConnections].sort((a, b) => a.name.localeCompare(b.name)),
-    [dbConnections]
+    [dbConnections],
   );
 
   const openEditDialog = (connection: DbConnection) => {
@@ -86,6 +102,8 @@ export function ConnectionsPage() {
       host: connection.host,
       port: String(connection.port),
       database: connection.database,
+      username: connection.username,
+      password: connection.password,
       notes: connection.notes,
     });
     setEditOpen(true);
@@ -109,6 +127,11 @@ export function ConnectionsPage() {
           <Text size="xs" c="dimmed">
             {connection.notes}
           </Text>
+          {connection.lastError ? (
+            <Text size="xs" c="red">
+              {connection.lastError}
+            </Text>
+          ) : null}
         </Stack>
       </Table.Td>
       <Table.Td>
@@ -123,24 +146,35 @@ export function ConnectionsPage() {
         </Text>
       </Table.Td>
       <Table.Td>
-        <Badge color={statusColorMap[connection.status]}>{connection.status}</Badge>
+        <Badge color={statusColorMap[connection.status]}>
+          {connection.status}
+        </Badge>
       </Table.Td>
       <Table.Td>
         <Group gap="xs" justify="end">
           <Button
             size="xs"
             variant="light"
-            loading={connection.status === 'Testing'}
+            loading={connection.status === "Testing"}
             onClick={() => {
               dispatch(testConnection(connection.id));
             }}
           >
             Test connection
           </Button>
-          <Button size="xs" variant="default" onClick={() => openEditDialog(connection)}>
+          <Button
+            size="xs"
+            variant="default"
+            onClick={() => openEditDialog(connection)}
+          >
             Edit
           </Button>
-          <Button size="xs" color="red" variant="subtle" onClick={() => openRemoveDialog(connection)}>
+          <Button
+            size="xs"
+            color="red"
+            variant="subtle"
+            onClick={() => openRemoveDialog(connection)}
+          >
             Remove
           </Button>
         </Group>
@@ -172,7 +206,7 @@ export function ConnectionsPage() {
                   <Table.Th>DB Type</Table.Th>
                   <Table.Th>Endpoint</Table.Th>
                   <Table.Th>Status</Table.Th>
-                  <Table.Th style={{ textAlign: 'right' }}>Actions</Table.Th>
+                  <Table.Th style={{ textAlign: "right" }}>Actions</Table.Th>
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>{rows}</Table.Tbody>
@@ -185,8 +219,10 @@ export function ConnectionsPage() {
         <Dialog.Portal>
           <Dialog.Overlay style={overlayStyle} />
           <Dialog.Content style={contentStyle}>
-            <Dialog.Title style={{ margin: 0 }}>Edit DB connection</Dialog.Title>
-            <Dialog.Description style={{ color: '#666', marginTop: 8 }}>
+            <Dialog.Title style={{ margin: 0 }}>
+              Edit DB connection
+            </Dialog.Title>
+            <Dialog.Description style={{ color: "#666", marginTop: 8 }}>
               Update metadata and endpoint details for {selected?.name}.
             </Dialog.Description>
             <ConnectionForm draft={formDraft} setDraft={setFormDraft} />
@@ -196,7 +232,14 @@ export function ConnectionsPage() {
               </Dialog.Close>
               <Button
                 onClick={() => {
-                  if (!selected || !formDraft.name.trim() || !formDraft.host.trim()) {
+                  if (
+                    !selected ||
+                    !formDraft.name.trim() ||
+                    !formDraft.host.trim() ||
+                    !formDraft.database.trim() ||
+                    !formDraft.username.trim() ||
+                    !formDraft.password.trim()
+                  ) {
                     return;
                   }
                   dispatch(
@@ -207,8 +250,10 @@ export function ConnectionsPage() {
                       host: formDraft.host.trim(),
                       port: Number(formDraft.port) || selected.port,
                       database: formDraft.database.trim(),
+                      username: formDraft.username.trim(),
+                      password: formDraft.password,
                       notes: formDraft.notes.trim(),
-                    })
+                    }),
                   );
                   setEditOpen(false);
                 }}
@@ -225,7 +270,7 @@ export function ConnectionsPage() {
           <Dialog.Overlay style={overlayStyle} />
           <Dialog.Content style={contentStyle}>
             <Dialog.Title style={{ margin: 0 }}>Add DB connection</Dialog.Title>
-            <Dialog.Description style={{ color: '#666', marginTop: 8 }}>
+            <Dialog.Description style={{ color: "#666", marginTop: 8 }}>
               Create a new SQL database connection.
             </Dialog.Description>
             <ConnectionForm draft={formDraft} setDraft={setFormDraft} />
@@ -235,7 +280,13 @@ export function ConnectionsPage() {
               </Dialog.Close>
               <Button
                 onClick={() => {
-                  if (!formDraft.name.trim() || !formDraft.host.trim()) {
+                  if (
+                    !formDraft.name.trim() ||
+                    !formDraft.host.trim() ||
+                    !formDraft.database.trim() ||
+                    !formDraft.username.trim() ||
+                    !formDraft.password.trim()
+                  ) {
                     return;
                   }
                   dispatch(
@@ -245,8 +296,10 @@ export function ConnectionsPage() {
                       host: formDraft.host.trim(),
                       port: Number(formDraft.port) || 5432,
                       database: formDraft.database.trim(),
+                      username: formDraft.username.trim(),
+                      password: formDraft.password,
                       notes: formDraft.notes.trim(),
-                    })
+                    }),
                   );
                   setAddOpen(false);
                   setFormDraft(emptyDraft);
@@ -263,10 +316,13 @@ export function ConnectionsPage() {
         <Dialog.Portal>
           <Dialog.Overlay style={overlayStyle} />
           <Dialog.Content style={contentStyle}>
-            <Dialog.Title style={{ margin: 0 }}>Remove DB connection</Dialog.Title>
-            <Dialog.Description style={{ color: '#666', marginTop: 8 }}>
-              Are you sure you want to remove <strong>{pendingRemove?.name ?? 'this connection'}</strong>?
-              This action cannot be undone.
+            <Dialog.Title style={{ margin: 0 }}>
+              Remove DB connection
+            </Dialog.Title>
+            <Dialog.Description style={{ color: "#666", marginTop: 8 }}>
+              Are you sure you want to remove{" "}
+              <strong>{pendingRemove?.name ?? "this connection"}</strong>? This
+              action cannot be undone.
             </Dialog.Description>
             <Group justify="end" mt="md">
               <Dialog.Close asChild>
@@ -304,7 +360,9 @@ function ConnectionForm({ draft, setDraft }: ConnectionFormProps) {
       <TextInput
         label="Connection name"
         value={draft.name}
-        onChange={(event) => setDraft((prev) => ({ ...prev, name: event.currentTarget.value }))}
+        onChange={(event) =>
+          setDraft((prev) => ({ ...prev, name: event.currentTarget.value }))
+        }
       />
       <Select
         label="DB type"
@@ -322,41 +380,64 @@ function ConnectionForm({ draft, setDraft }: ConnectionFormProps) {
       <TextInput
         label="Host"
         value={draft.host}
-        onChange={(event) => setDraft((prev) => ({ ...prev, host: event.currentTarget.value }))}
+        onChange={(event) =>
+          setDraft((prev) => ({ ...prev, host: event.currentTarget.value }))
+        }
       />
       <TextInput
         label="Port"
         value={draft.port}
-        onChange={(event) => setDraft((prev) => ({ ...prev, port: event.currentTarget.value }))}
+        onChange={(event) =>
+          setDraft((prev) => ({ ...prev, port: event.currentTarget.value }))
+        }
       />
       <TextInput
         label="Database"
         value={draft.database}
-        onChange={(event) => setDraft((prev) => ({ ...prev, database: event.currentTarget.value }))}
+        onChange={(event) =>
+          setDraft((prev) => ({ ...prev, database: event.currentTarget.value }))
+        }
+      />
+      <TextInput
+        label="Username"
+        value={draft.username}
+        onChange={(event) =>
+          setDraft((prev) => ({ ...prev, username: event.currentTarget.value }))
+        }
+      />
+      <TextInput
+        label="Password"
+        type="password"
+        value={draft.password}
+        onChange={(event) =>
+          setDraft((prev) => ({ ...prev, password: event.currentTarget.value }))
+        }
       />
       <TextInput
         label="Notes"
         value={draft.notes}
-        onChange={(event) => setDraft((prev) => ({ ...prev, notes: event.currentTarget.value }))}
+        onChange={(event) =>
+          setDraft((prev) => ({ ...prev, notes: event.currentTarget.value }))
+        }
       />
     </Stack>
   );
 }
 
 const overlayStyle: CSSProperties = {
-  backgroundColor: 'rgba(0, 0, 0, 0.35)',
-  position: 'fixed',
+  backgroundColor: "rgba(0, 0, 0, 0.35)",
+  position: "fixed",
   inset: 0,
 };
 
 const contentStyle: CSSProperties = {
-  backgroundColor: 'white',
+  backgroundColor: "white",
   borderRadius: 12,
-  boxShadow: '0 18px 38px rgba(0, 0, 0, 0.2)',
-  position: 'fixed',
-  top: '50%',
-  left: '50%',
-  transform: 'translate(-50%, -50%)',
-  width: 'min(92vw, 520px)',
+  boxShadow: "0 18px 38px rgba(0, 0, 0, 0.2)",
+  position: "fixed",
+  top: "50%",
+  left: "50%",
+  transform: "translate(-50%, -50%)",
+  width: "min(92vw, 520px)",
   padding: 20,
 };

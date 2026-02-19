@@ -1,9 +1,21 @@
-import { Badge, Button, Card, Container, Group, Select, Stack, Table, Text, TextInput, Title } from '@mantine/core';
-import { useParams } from '@tanstack/react-router';
-import { useState } from 'react';
+import {
+  Badge,
+  Button,
+  Card,
+  Container,
+  Group,
+  Select,
+  Stack,
+  Table,
+  Text,
+  TextInput,
+  Title,
+} from "@mantine/core";
+import { Link, useParams } from "@tanstack/react-router";
+import { useState } from "react";
 
-import { runPipeline } from '../features/pipeline/pipelineSlice';
-import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { runPipeline } from "../features/pipeline/pipelineSlice";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
 
 type PipelineField = {
   id: string;
@@ -12,16 +24,28 @@ type PipelineField = {
   required: boolean;
 };
 
-const typeOptions = ['string', 'number', 'boolean', 'date', 'json'];
+const typeOptions = ["string", "number", "boolean", "date", "json"];
 
 export function PipelineBuilderPage() {
-  const { pipelineId } = useParams({ from: '/pipeline/$pipelineId' });
+  const { pipelineId } = useParams({ from: "/pipeline/$pipelineId" });
   const dispatch = useAppDispatch();
-  const pipeline = useAppSelector((state) => state.pipeline.items.find((item) => item.id === pipelineId));
+  const pipeline = useAppSelector((state) =>
+    state.pipeline.items.find((item) => item.id === pipelineId),
+  );
 
   const [fields, setFields] = useState<PipelineField[]>([
-    { id: crypto.randomUUID(), name: 'source_table', type: 'string', required: true },
-    { id: crypto.randomUUID(), name: 'batch_size', type: 'number', required: false },
+    {
+      id: crypto.randomUUID(),
+      name: "source_table",
+      type: "string",
+      required: true,
+    },
+    {
+      id: crypto.randomUUID(),
+      name: "batch_size",
+      type: "number",
+      required: false,
+    },
   ]);
 
   if (!pipeline) {
@@ -37,6 +61,9 @@ export function PipelineBuilderPage() {
       <Stack>
         <Group justify="space-between">
           <div>
+            <Button component={Link} to="/pipeline" variant="subtle" px={0}>
+              ← Back to pipelines
+            </Button>
             <Title order={2}>Pipeline Workspace: {pipeline.name}</Title>
             <Text c="dimmed" size="sm">
               Configure runtime fields and start this pipeline when ready.
@@ -54,7 +81,12 @@ export function PipelineBuilderPage() {
                 onClick={() => {
                   setFields((prev) => [
                     ...prev,
-                    { id: crypto.randomUUID(), name: '', type: 'string', required: false },
+                    {
+                      id: crypto.randomUUID(),
+                      name: "",
+                      type: "string",
+                      required: false,
+                    },
                   ]);
                 }}
               >
@@ -68,7 +100,7 @@ export function PipelineBuilderPage() {
                   <Table.Th>Field name</Table.Th>
                   <Table.Th>Type</Table.Th>
                   <Table.Th>Required</Table.Th>
-                  <Table.Th style={{ textAlign: 'right' }}>Actions</Table.Th>
+                  <Table.Th style={{ textAlign: "right" }}>Actions</Table.Th>
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
@@ -81,8 +113,10 @@ export function PipelineBuilderPage() {
                         onChange={(event) => {
                           setFields((prev) =>
                             prev.map((item) =>
-                              item.id === field.id ? { ...item, name: event.currentTarget.value } : item
-                            )
+                              item.id === field.id
+                                ? { ...item, name: event.currentTarget.value }
+                                : item,
+                            ),
                           );
                         }}
                       />
@@ -94,7 +128,11 @@ export function PipelineBuilderPage() {
                         onChange={(value) => {
                           if (!value) return;
                           setFields((prev) =>
-                            prev.map((item) => (item.id === field.id ? { ...item, type: value } : item))
+                            prev.map((item) =>
+                              item.id === field.id
+                                ? { ...item, type: value }
+                                : item,
+                            ),
                           );
                         }}
                       />
@@ -102,24 +140,30 @@ export function PipelineBuilderPage() {
                     <Table.Td>
                       <Button
                         size="xs"
-                        variant={field.required ? 'filled' : 'default'}
+                        variant={field.required ? "filled" : "default"}
                         onClick={() => {
                           setFields((prev) =>
                             prev.map((item) =>
-                              item.id === field.id ? { ...item, required: !item.required } : item
-                            )
+                              item.id === field.id
+                                ? { ...item, required: !item.required }
+                                : item,
+                            ),
                           );
                         }}
                       >
-                        {field.required ? 'Yes' : 'No'}
+                        {field.required ? "Yes" : "No"}
                       </Button>
                     </Table.Td>
-                    <Table.Td style={{ textAlign: 'right' }}>
+                    <Table.Td style={{ textAlign: "right" }}>
                       <Button
                         size="xs"
                         variant="subtle"
                         color="red"
-                        onClick={() => setFields((prev) => prev.filter((item) => item.id !== field.id))}
+                        onClick={() =>
+                          setFields((prev) =>
+                            prev.filter((item) => item.id !== field.id),
+                          )
+                        }
                       >
                         Remove
                       </Button>
@@ -131,10 +175,11 @@ export function PipelineBuilderPage() {
 
             <Group justify="space-between" mt="sm">
               <Text size="sm" c="dimmed">
-                Connection: {pipeline.connectionName} • Schedule: {pipeline.schedule}
+                Connection: {pipeline.connectionName} • Schedule:{" "}
+                {pipeline.schedule}
               </Text>
               <Button
-                loading={pipeline.status === 'Running'}
+                loading={pipeline.status === "Running"}
                 onClick={() => dispatch(runPipeline(pipeline.id))}
               >
                 Start pipeline

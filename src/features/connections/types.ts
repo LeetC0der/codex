@@ -1,13 +1,13 @@
-export type ConnectionStatus = 'Connected' | 'Disconnected' | 'Testing';
+export type ConnectionStatus = "Connected" | "Disconnected" | "Testing";
 
 export type DbEngine =
-  | 'PostgreSQL'
-  | 'MySQL'
-  | 'MariaDB'
-  | 'SQL Server'
-  | 'Oracle'
-  | 'SQLite'
-  | 'CockroachDB';
+  | "PostgreSQL"
+  | "MySQL"
+  | "MariaDB"
+  | "SQL Server"
+  | "Oracle"
+  | "SQLite"
+  | "CockroachDB";
 
 export type DbConnection = {
   id: string;
@@ -16,6 +16,9 @@ export type DbConnection = {
   host: string;
   port: number;
   database: string;
+  username: string;
+  password: string;
   status: ConnectionStatus;
   notes: string;
+  lastError: string | null;
 };
