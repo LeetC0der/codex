@@ -1,8 +1,21 @@
-import { Badge, Button, Card, Container, Grid, Group, Stack, Text, Title } from '@mantine/core';
-import { useQuery } from '@tanstack/react-query';
-import { Link } from '@tanstack/react-router';
+import {
+  Badge,
+  Button,
+  Card,
+  Container,
+  Grid,
+  Group,
+  List,
+  SimpleGrid,
+  Stack,
+  Text,
+  ThemeIcon,
+  Title,
+} from "@mantine/core";
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 
-import { api } from '../lib/api';
+import { api } from "../lib/api";
 
 type QuoteResponse = {
   quote: string;
@@ -13,64 +26,95 @@ type ProductResponse = {
   products: Array<{ id: number; title: string; description: string }>;
 };
 
+const modules = [
+  "Dashboard",
+  "Pipeline",
+  "Connections",
+  "Settings",
+  "Secure Logout",
+];
+
 async function fetchQuote() {
-  const { data } = await api.get<QuoteResponse>('/quotes/random');
+  const { data } = await api.get<QuoteResponse>("/quotes/random");
   return data;
 }
 
 async function fetchHighlights() {
-  const { data } = await api.get<ProductResponse>('/products?limit=3&skip=2');
+  const { data } = await api.get<ProductResponse>("/products?limit=3&skip=2");
   return data.products;
 }
 
 export function LandingPage() {
-  const quote = useQuery({ queryKey: ['quote'], queryFn: fetchQuote });
-  const highlights = useQuery({ queryKey: ['highlights'], queryFn: fetchHighlights });
+  const quote = useQuery({ queryKey: ["quote"], queryFn: fetchQuote });
+  const highlights = useQuery({
+    queryKey: ["highlights"],
+    queryFn: fetchHighlights,
+  });
 
   return (
-    <Container size="lg">
-      <Stack gap="xl">
-        <Stack gap="xs" ta="center" py="xl">
-          <Badge variant="light" size="lg" w="fit-content" mx="auto">
-            Production-ready starter
-          </Badge>
-          <Title order={1}>Dynamic React + Mantine + TanStack launchpad</Title>
-          <Text c="dimmed" maw={680} mx="auto">
-            Ship a polished customer landing page with instant data hydration, safe auth boundaries,
-            and scalable routing.
-          </Text>
-          <Group justify="center" mt="sm">
-            <Button component={Link} to="/login">
-              Get started
-            </Button>
-            <Button component="a" variant="default" href="#features">
-              View features
-            </Button>
-          </Group>
-        </Stack>
+    <Container size="xl" py="xl">
+      <Grid gutter="xl" align="center">
+        <Grid.Col span={{ base: 12, md: 7 }}>
+          <Stack gap="md">
+            <Badge variant="light" w="fit-content">
+              Production-grade home page
+            </Badge>
+            <Title order={1}>
+              Operate your team from one clean, scalable workspace
+            </Title>
+            <Text c="dimmed">
+              This home page ships with standard app modules, protected routes,
+              and a modern layout pattern that scales for SaaS operations.
+            </Text>
 
-        <Card withBorder radius="md" p="lg">
-          <Text fw={600}>Live motivation</Text>
-          <Text c="dimmed" mt="xs">
-            {quote.data ? `“${quote.data.quote}” — ${quote.data.author}` : 'Loading quote...'}
-          </Text>
-        </Card>
+            <List
+              spacing="xs"
+              icon={
+                <ThemeIcon color="indigo" size={20} radius="xl">
+                  ✓
+                </ThemeIcon>
+              }
+            >
+              {modules.map((item) => (
+                <List.Item key={item}>{item}</List.Item>
+              ))}
+            </List>
 
-        <Stack id="features" gap="md">
-          <Title order={2}>What you can launch today</Title>
-          <Grid>
-            {highlights.data?.map((item) => (
-              <Grid.Col span={{ base: 12, md: 4 }} key={item.id}>
-                <Card withBorder radius="md" h="100%">
-                  <Text fw={600}>{item.title}</Text>
-                  <Text size="sm" c="dimmed" mt="xs">
-                    {item.description}
-                  </Text>
-                </Card>
-              </Grid.Col>
-            ))}
-          </Grid>
-        </Stack>
+            <Group>
+              <Button component={Link} to="/dashboard">
+                Open Dashboard
+              </Button>
+              <Button variant="default" component={Link} to="/login">
+                Sign in
+              </Button>
+            </Group>
+          </Stack>
+        </Grid.Col>
+
+        <Grid.Col span={{ base: 12, md: 5 }}>
+          <Card withBorder radius="md">
+            <Text fw={600}>Live quote</Text>
+            <Text mt="xs" c="dimmed">
+              {quote.data
+                ? `“${quote.data.quote}” — ${quote.data.author}`
+                : "Loading quote..."}
+            </Text>
+          </Card>
+        </Grid.Col>
+      </Grid>
+
+      <Stack mt="xl" gap="md">
+        <Title order={2}>Suggested homepage modules</Title>
+        <SimpleGrid cols={{ base: 1, md: 3 }}>
+          {highlights.data?.map((item) => (
+            <Card key={item.id} withBorder>
+              <Text fw={600}>{item.title}</Text>
+              <Text size="sm" c="dimmed" mt="xs">
+                {item.description}
+              </Text>
+            </Card>
+          ))}
+        </SimpleGrid>
       </Stack>
     </Container>
   );

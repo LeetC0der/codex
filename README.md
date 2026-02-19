@@ -16,6 +16,16 @@ npm run dev
 
 App runs on `http://localhost:4173`.
 
+## Home and navigation modules
+
+The home and authenticated workspace include standard production sections:
+
+- Dashboard
+- Pipeline
+- Connections
+- Settings
+- Logout
+
 ## Demo auth
 
 Use any valid email and a password with at least 8 characters to sign in.
